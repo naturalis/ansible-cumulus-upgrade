@@ -1,0 +1,8 @@
+---
+- import_tasks: upgrade.yml
+  tags:
+    - upgrade
+
+- import_tasks: shutdown_ospf.yml
+  tags:
+    - upgrade

@@ -1,0 +1,88 @@
+---
+# there does not seem to be a graceful ospf shutdown in frr
+
+#- name: Collect List of OSPF neighbours
+#  shell: /usr/bin/net show ospf neighbor | tail -n +2 | awk '{print $1}'
+#  register: ospf_neighbours
+#  changed_when: false
+
+#- name: Drop OSPF neighbours
+#  shell: "/usr/bin/vtysh -c "config t" -c "router ospf" -c "no neighbor {{item}}" -c "end" -c "wr""
+#  with_items:
+#    - "{{ ospf_neighbours.stdout_lines }}"
+
+- name: Shutdown OSPF
+  shell: /usr/bin/vtysh -c "config t" -c "router ospf" -c "no router ospf" -c "end" -c "wr"
+  notify: stop frr
+
+- name: Wait 5 seconds to Propogate
+  pause:
+    seconds: 5
+
+- name: Clear Counters
+  shell: /usr/cumulus/bin/cl-netstat -c
+
+- name: Collect List of Interfaces to Validate (physical interfaces starting with 'swp' or 'fp')
+  shell: /usr/bin/net show interface | tail -n +3 | grep -v "ADMDN" | awk '{print $2}' | egrep -e '^swp|^fp'
+  register: interfaces_to_validate
+  changed_when: false
+
+- name: Collect Initial Interface Counters
+  shell: /usr/cumulus/bin/cl-netstat -j
+  register: initial_counters_json
+  changed_when: false
+
+- name: Wait 30 seconds for Interface Counters to Increment
+  pause:
+    seconds: 30
+
+- name: Collect Interface Counters Again (for comparison)
+  shell: /usr/cumulus/bin/cl-netstat -j
+  register: second_counters_json
+  changed_when: false
+
+- name: Convert Counters Information to Ansible Variables
+  set_fact:
+    initial_counters: "{{initial_counters_json.stdout | from_json}}"
+    second_counters: "{{second_counters_json.stdout | from_json}}"
+  changed_when: false
+
+- name: DEBUG Interface Traffic Rate Comparison
+  debug: msg="INTERFACE {{item}} -----      {{second_counters[item]['RX_OK']|int - initial_counters[item]['RX_OK']|int}} <= {{counter_threshold}}"
+  with_items:
+    - "{{interfaces_to_validate.stdout_lines}}"
+
+- name: Validate Expected Interface Traffic Rates
+  assert:
+    that: "(second_counters['{{item}}']['RX_OK']|int - initial_counters['{{item}}']['RX_OK']|int) <= counter_threshold|int"
+    msg: "There must be less than {{counter_threshold}} packets received on the interface in a 5 second interval for the interface to be considered out of service."
+  with_items:
+    - "{{interfaces_to_validate.stdout_lines}}"
+
+- name: Check if CLAG is running
+  shell: systemctl status clagd.service
+  register: clag_status
+  changed_when: false
+
+- block:
+  - name: CLAG -- Make the node "secondary"
+    shell: /usr/bin/clagctl priority 32768
+
+- name: CLAG -- Wait 10sec for clagd to inform peer
+  wait_for:
+    timeout: 10
+  delegate_to: 'localhost'
+
+- name: CLAG -- Bring down L3 Uplinks
+  shell: /sbin/ip link set {{item}} down
+  with_items: "{{l3_uplinks}}"
+  notify: stop frr
+
+- name: CLAG -- Bring down Peerlink (proto-downs host ports)
+  shell: /sbin/ip link set peerlink down
+  when: clag_status.rc == 0
+  notify: stop frr
+
+- name: Write Syslog on Cumulus device to inform Ansible Finish
+  shell: /usr/bin/logger -t "ANSIBLE" "Upgrade routine complete. Upgrade to commence now."
+  notify: restart and upgrade switch

@@ -1,0 +1,11 @@
+---
+- name: stop frr
+  service:
+    name: frr
+    state: stopped
+
+- name: restart and upgrade switch
+  shell: sleep 2 && shutdown -r now "Upgrade Started via Ansible"
+  async: 1
+  poll: 0
+  ignore_errors: true
