@@ -73,9 +73,9 @@
     timeout: 10
   delegate_to: 'localhost'
 
-- name: CLAG -- Bring down L3 Uplinks
+- name: CLAG -- Bring down L3 Uplinks and Aggregation ports
   shell: /sbin/ip link set {{item}} down
-  with_items: "{{l3_uplinks}}"
+  with_items: "{{aggregation_ports}}"
   notify: stop frr
 
 - name: CLAG -- Bring down Peerlink (proto-downs host ports)
