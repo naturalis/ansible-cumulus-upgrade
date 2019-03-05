@@ -4,5 +4,11 @@
     - upgrade
 
 - import_tasks: shutdown_ospf.yml
+  when: "'spines' in group_names or 'uplinks' in group_names"
   tags:
-    - upgrade
+    - ospf
+
+- import_tasks: shutdown_clag.yml
+  when: "'spines' in group_names or 'leafs' in group_names"
+  tags:
+    - clag

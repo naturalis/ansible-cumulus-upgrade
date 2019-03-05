@@ -1,0 +1,28 @@
+---
+- name: Check if CLAG is running
+  shell: systemctl status clagd.service
+  register: clag_status
+  changed_when: false
+
+- block:
+  - name: CLAG -- Make the node "secondary"
+    shell: /usr/bin/clagctl priority 32768
+
+- name: CLAG -- Wait 10sec for clagd to inform peer
+  wait_for:
+    timeout: 10
+  delegate_to: 'localhost'
+
+- name: CLAG -- Bring down Aggregation ports
+  shell: /sbin/ip link set {{item}} down
+  with_items: "{{aggregation_ports}}"
+  notify: stop frr
+
+- name: CLAG -- Bring down Peerlink (proto-downs host ports)
+  shell: /sbin/ip link set peerlink down
+  when: clag_status.rc == 0
+  notify: stop frr
+
+- name: Write Syslog on Cumulus device to inform Ansible Finish
+  shell: /usr/bin/logger -t "ANSIBLE" "Upgrade routine complete. Upgrade to commence now."
+  notify: restart and upgrade switch
