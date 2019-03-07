@@ -22,8 +22,8 @@
 - name: Clear Counters
   shell: /usr/cumulus/bin/cl-netstat -c
 
-- name: Collect List of Interfaces to Validate (physical interfaces starting with 'swp' or 'fp')
-  shell: /usr/bin/net show interface | tail -n +3 | grep -v "ADMDN" | awk '{print $2}' | egrep -e '^swp|^fp'
+- name: Collect List of Interfaces to Validate (physical interfaces starting with 'swp')
+  shell: /usr/bin/net show interface | tail -n +3 | grep -v "ADMDN" | awk '{print $2}' | egrep -e '^swp'
   register: interfaces_to_validate
   changed_when: false
 
