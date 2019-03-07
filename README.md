@@ -14,8 +14,6 @@ None.
 
 Available variables are listed below.
 ```bash
-desired_image: https://192.168.0.254/cumulus-linux-3.7.0-bcm-amd64.bin
-ztp_url: http://192.168.144.5/ztp_oob.sh
 counter_threshold: 1000
 ```
 
