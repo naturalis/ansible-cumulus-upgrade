@@ -22,7 +22,3 @@
   shell: /sbin/ip link set peerlink down
   when: clag_status.rc == 0
   notify: stop frr
-
-- name: Write Syslog on Cumulus device to inform Ansible Finish
-  shell: /usr/bin/logger -t "ANSIBLE" "Upgrade routine complete. Upgrade to commence now."
-  notify: restart and upgrade switch

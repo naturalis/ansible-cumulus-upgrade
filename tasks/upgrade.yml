@@ -1,6 +1,3 @@
 ---
-- name: Write Syslog on Cumulus device to inform Ansible Start
-  shell: /usr/bin/logger -t "ANSIBLE" "Update Routine starting."
-
-- name: Prestage the Image for Upgrade
-  shell: /usr/cumulus/bin/onie-install -cf && /usr/cumulus/bin/onie-install -fa -i {{desired_image}} -z {{ztp_url}}
+- name: Stage ONIE installer
+  shell: /usr/cumulus/bin/onie-install -cf && /usr/cumulus/bin/onie-install -fa -i
