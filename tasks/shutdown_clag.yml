@@ -14,11 +14,11 @@
   delegate_to: 'localhost'
 
 - name: CLAG -- Bring down Aggregation ports
-  shell: /sbin/ip link set {{item}} down
-  with_items: "{{aggregation_ports}}"
+  shell: /sbin/ip link set {{ item }} down
+  with_items: "{{ ospf }}"
   notify: stop frr
 
-- name: CLAG -- Bring down Peerlink (proto-downs host ports)
+- name: CLAG -- Bring down Peerlink (proto-downs aggregation_ports)
   shell: /sbin/ip link set peerlink down
   when: clag_status.rc == 0
   notify: stop frr
