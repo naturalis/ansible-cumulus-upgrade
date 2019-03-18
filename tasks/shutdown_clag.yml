@@ -13,7 +13,7 @@
     timeout: 10
   delegate_to: 'localhost'
 
-- name: CLAG -- Bring down Aggregation ports
+- name: CLAG -- Bring down uplink ports
   shell: /sbin/ip link set {{ item }} down
   with_items: "{{ ospf }}"
   notify: stop frr
